@@ -1,0 +1,10 @@
+variable "token" {}
+variable "rest_method" {}
+variable "project" {}
+variable "project_id" {}
+variable "region" {}
+variable "fw_rule" {}
+variable "common_tags" {}
+variable "bucket_functions_name" {}
+variable "function_region" {}
+variable "service_account_fw_update" {}
