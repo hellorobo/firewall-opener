@@ -1,6 +1,6 @@
 # Function dependencies, for example:
 # package>=version
 
-google-api-python-client
+google-api-python-client==1.10.0
 oauth2client
 dnspython

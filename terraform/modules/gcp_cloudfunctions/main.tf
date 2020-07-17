@@ -26,7 +26,6 @@ data "archive_file" "update_fw" {
 }
 
 resource "google_storage_bucket_object" "update_fw" {
-  // we append hash to the filename as a temporary workaround for https://github.com/terraform-providers/terraform-provider-google/issues/1938
   name       = "${local.source_object_file_name_prefix}update_fw-${lower(replace(base64encode(data.archive_file.update_fw.output_md5), "=", ""))}.zip"
   bucket     = var.bucket_functions_name
   source     = data.archive_file.update_fw.output_path
@@ -48,6 +47,8 @@ resource "google_cloudfunctions_function" "update_fw" {
     AUTH_BEARER_TOKEN = var.token
     PROJECT = var.project
     FW_RULE = var.fw_rule
+    REST_METHOD = var.rest_method
+    DDNS = var.ddns
   }
   labels = var.common_tags
   region = var.function_region

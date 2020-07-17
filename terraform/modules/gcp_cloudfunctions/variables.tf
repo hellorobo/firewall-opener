@@ -1,5 +1,6 @@
 variable "token" {}
 variable "rest_method" {}
+variable "ddns" {}
 variable "project" {}
 variable "project_id" {}
 variable "region" {}

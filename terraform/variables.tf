@@ -5,6 +5,7 @@ variable "zone" {}
 
 variable "token" {}
 variable "rest_method" {}
+variable "ddns" {}
 variable "fw_rule" {}
 variable "function_region" {}
 

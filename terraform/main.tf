@@ -35,6 +35,7 @@ module "gcp_cloudfunctions" {
   fw_rule        = var.fw_rule
   token          = var.token
   rest_method    = var.rest_method
+  ddns           = var.ddns
   project        = var.project
   project_id     = data.google_project.current.id
   region         = var.region
