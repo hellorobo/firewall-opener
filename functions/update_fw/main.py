@@ -4,6 +4,7 @@ from googleapiclient import discovery
 from oauth2client.client import GoogleCredentials
 from flask import abort, jsonify, make_response
 import dns.resolver
+from google.cloud import error_reporting
 
 
 def getNsRecord(url, nameserver='8.8.8.8'):
@@ -64,50 +65,57 @@ def getARecord(fqdn, dnsips):
       return cidr
 
 def updateFw(request):
-    request_json = request.get_json()
-    request_method = request.method
-    print (f"Received request: {json.dumps(request_json)}")
 
-    auth_token = request.headers['Authorization'].replace('Bearer ','')
-    if (os.environ['AUTH_BEARER_TOKEN'] == auth_token) and (request_method == os.environ['REST_METHOD']):
-      project = os.environ['PROJECT']
-      firewall = os.environ['FW_RULE']
-      ddns = os.environ['DDNS']
-      received_cidr = request_json['cidr']
+    client = error_reporting.Client()
 
-      # get cidr from dynamic dns service provider
-      dns_servers = getNsRecord(ddns)
-      dns_ips = resolveFqdns(dns_servers)
-      cidr_from_dns = getARecord(ddns, dns_ips)+'/32'
+    try:
+      request_json = request.get_json()
+      request_method = request.method
+      print (f"Received request: {json.dumps(request_json)}")
 
-      # compare recevived_cidr with cidr_from_dns
-      if cidr_from_dns == received_cidr:
+      auth_token = request.headers['Authorization'].replace('Bearer ','')
+      if (os.environ['AUTH_BEARER_TOKEN'] == auth_token) and (request_method == os.environ['REST_METHOD']):
+        project = os.environ['PROJECT']
+        firewall = os.environ['FW_RULE']
+        ddns = os.environ['DDNS']
+        received_cidr = request_json['cidr']
 
-        credentials = GoogleCredentials.get_application_default()
-        service = discovery.build('compute', 'v1', credentials=credentials)
+        # get cidr from dynamic dns service provider
+        dns_servers = getNsRecord(ddns)
+        dns_ips = resolveFqdns(dns_servers)
+        cidr_from_dns = getARecord(ddns, dns_ips)+'/32'
 
-        # get current fw settings
-        handler = service.firewalls().get(project=project, firewall=firewall)
-        fw_settings = handler.execute()
+        # compare recevived_cidr with cidr_from_dns
+        if cidr_from_dns == received_cidr:
 
-        # remove unwanted fields
-        try:
-          del fw_settings['id']
-          del fw_settings['creationTimestamp']
-          del fw_settings['sourceRanges']
-        except KeyError:
-          pass
-        
-        fw_settings['sourceRanges'] = [cidr_from_dns]
+          credentials = GoogleCredentials.get_application_default()
+          service = discovery.build('compute', 'v1', credentials=credentials)
 
-        handler = service.firewalls().update(project=project, firewall=firewall, body=fw_settings)
-        response = handler.execute()
+          # get current fw settings
+          handler = service.firewalls().get(project=project, firewall=firewall)
+          fw_settings = handler.execute()
 
-        if 'httpErrorStatusCode' not in response:
-          return make_response(jsonify({'success':True}), 200)
+          # remove unwanted fields
+          try:
+            del fw_settings['id']
+            del fw_settings['creationTimestamp']
+            del fw_settings['sourceRanges']
+          except KeyError:
+            pass
+          
+          fw_settings['sourceRanges'] = [cidr_from_dns]
+
+          handler = service.firewalls().update(project=project, firewall=firewall, body=fw_settings)
+          response = handler.execute()
+
+          if 'httpErrorStatusCode' not in response:
+            return make_response(jsonify({'success':True}), 200)
+          else:
+            return make_response(jsonify({'error':response['httpErrorMessage']}), response['httpErrorStatusCode'])
         else:
-          return make_response(jsonify({'error':response['httpErrorMessage']}), response['httpErrorStatusCode'])
+          return abort(412) # http error: Precondition Failed
       else:
-        return abort(412) # http error: Precondition Failed
-    else:
-      return abort(401) # http error: Unauthorized
+        return abort(401) # http error: Unauthorized
+    except:
+      client.report_exception()
+      return abort(500) # internal error

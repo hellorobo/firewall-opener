@@ -12,7 +12,8 @@ resource "google_project_iam_custom_role" "firewall_updater" {
   permissions = [
     "compute.firewalls.get",
     "compute.firewalls.update",
-    "compute.networks.updatePolicy"
+    "compute.networks.updatePolicy",
+    "errorreporting.errorEvents.create"
   ]
 }
 

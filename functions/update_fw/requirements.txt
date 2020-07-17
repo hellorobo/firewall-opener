@@ -2,5 +2,6 @@
 # package>=version
 
 google-api-python-client==1.10.0
+google-cloud-error-reporting
 oauth2client
 dnspython
